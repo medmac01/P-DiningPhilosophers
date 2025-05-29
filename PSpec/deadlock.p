@@ -1,44 +1,55 @@
 spec DeadlockDetection observes ePickup, ePutDown, eForkTaken, eForkBusy {
-    var activeRequests: int; // Count of pending fork requests
-    var totalBusyResponses: int; // Count of busy responses
-    var consecutiveBusyCount: int; // Consecutive busy responses without any success
+    var pendingRequests: int; // Active pickup requests that haven't been resolved
+    var consecutiveBusyCount: int; // Consecutive busy responses without any fork taken
+    var totalOperations: int; // Total operations for deadlock detection
+    var lastSuccessfulOperation: int; // Track when last fork was successfully taken
     
     start state Monitoring {
         entry { 
-            activeRequests = 0;
-            totalBusyResponses = 0;
+            pendingRequests = 0;
             consecutiveBusyCount = 0;
+            totalOperations = 0;
+            lastSuccessfulOperation = 0;
         }
         
         on ePickup do {
-            activeRequests = activeRequests + 1;
-            print format("Fork pickup request - Active requests: {0}", activeRequests);
+            pendingRequests = pendingRequests + 1;
+            totalOperations = totalOperations + 1;
+            print format("Fork pickup request - Pending: {0}, Total ops: {1}", 
+                        pendingRequests, totalOperations);
         }
         
         on eForkTaken do {
-            // Fork was successfully acquired - reset consecutive busy counter
-            activeRequests = activeRequests - 1;
+            // Fork successfully acquired
+            pendingRequests = pendingRequests - 1;
             consecutiveBusyCount = 0;
-            print format("Fork acquired - Active requests: {0}", activeRequests);
+            lastSuccessfulOperation = totalOperations;
+            print format("Fork acquired - Pending: {0}, Reset consecutive busy", pendingRequests);
         }
         
         on eForkBusy do {
-            // Fork was busy - increment counters
-            activeRequests = activeRequests - 1;
-            totalBusyResponses = totalBusyResponses + 1;
+            // Fork was busy
+            pendingRequests = pendingRequests - 1;
             consecutiveBusyCount = consecutiveBusyCount + 1;
             
-            print format("Fork busy - Consecutive busy: {0}, Total busy: {1}", 
-                        consecutiveBusyCount, totalBusyResponses);
+            print format("Fork busy - Consecutive: {0}, Pending: {1}, Gap since success: {2}", 
+                        consecutiveBusyCount, pendingRequests, 
+                        totalOperations - lastSuccessfulOperation);
             
-            // Deadlock detection: too many consecutive busy responses indicates deadlock
-            assert consecutiveBusyCount <= 15, 
-                   format("Potential deadlock detected: {0} consecutive fork busy responses", consecutiveBusyCount);
+            // More aggressive deadlock detection
+            assert consecutiveBusyCount <= 5, 
+                   format("Deadlock detected: {0} consecutive busy responses", consecutiveBusyCount);
+                   
+            // Alternative: detect if too many operations without progress
+            assert (totalOperations - lastSuccessfulOperation) <= 15,
+                   format("Deadlock detected: {0} operations without progress", 
+                          totalOperations - lastSuccessfulOperation);
         }
         
         on ePutDown do {
-            // Fork released - reset consecutive busy counter (progress made)
+            // Fork released - this indicates progress
             consecutiveBusyCount = 0;
+            lastSuccessfulOperation = totalOperations;
             print format("Fork released - Reset consecutive busy counter");
         }
     }

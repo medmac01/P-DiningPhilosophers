@@ -16,9 +16,9 @@ machine Philo {
     state Thinking {
         entry {
             print format("Philosopher {0} is thinking", id);
+            // Automatically try to eat after thinking (this will cause deadlock)
+            goto TryLeftFork;
         }
-        
-        on eStartEating goto TryLeftFork;
     }
     
     state TryLeftFork {
@@ -28,7 +28,7 @@ machine Philo {
         }
         
         on eForkTaken goto TryRightFork;
-        on eForkBusy goto Thinking;
+        on eForkBusy goto Thinking; // Try again later
     }
 
     state TryRightFork {
@@ -39,17 +39,16 @@ machine Philo {
 
         on eForkTaken goto Eating;
         on eForkBusy do {
-            send leftFork, ePutDown; // Release left fork if right fork is busy
-            goto Thinking;
+            // DEADLOCK VERSION: Don't release left fork, just wait/retry
+            print format("Philosopher {0} waiting for right fork (holding left)", id);
+            send rightFork, ePickup; // Keep trying without releasing left fork
         }
     }
 
     state Eating {
         entry {
             print format("Philosopher {0} is eating", id);
-        }
-        
-        on eFinishEating do {
+            // Automatically finish eating to continue simulation
             send leftFork, ePutDown;
             send rightFork, ePutDown;
             goto Thinking;
