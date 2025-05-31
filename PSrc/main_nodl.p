@@ -1,11 +1,4 @@
-event ePickup;
-event ePutDown;
-event eForkTaken;
-event eForkBusy;
-event eStartEating;
-event eFinishEating;
-
-machine Main {
+machine Main_NODL {
     var philosophers: seq[machine];
     var forks: seq[machine];
     var numPhilosophers: int;
@@ -32,17 +25,16 @@ machine Main {
                 leftFork = forks[i];
                 rightFork = forks[(i + 1) % numPhilosophers];
 
-                philosophers += (0, new Philo((id=i, left=leftFork, right=rightFork)));
+                if (i == numPhilosophers - 2) {
+                    // One philosopher picks up in reverse order
+                    philosophers += (0, new Philo((id=i, left=rightFork, right=leftFork)));
+                } else {
+                    philosophers += (0, new Philo((id=i, left=leftFork, right=rightFork)));
+                }
                 i = i + 1;
             }
-            
-            print "Dining philosophers simulation started with 5 philosophers and 5 forks";
+
+            print format("Dining philosophers simulation started with {0} philosophers and {1} forks", numPhilosophers, numPhilosophers);
         }
     }
 }
-
-module Main = { Main };
-module Philo = { Philo };
-module Fork = { Fork };
-
-test DefaultImpl [main=Main]: assert DeadlockDetection in (union Main, Philo, Fork);
