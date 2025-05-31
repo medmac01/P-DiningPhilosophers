@@ -9,8 +9,8 @@ This project implements the Dining Philosophers problem using the P programming 
 ## Architecture
 
 **System Components:**
-- **Philosophers (Philo)**: 5 state machines representing philosophers who think and eat
-- **Forks (Fork)**: 5 state machines representing shared resources (forks)
+- **Philosophers (Philo)**: 5 state machines representing philosophers who think and eat (can be n philosophers)
+- **Forks (Fork)**: 5 state machines representing shared forks (can be n forks)
 - **Main**: Controller that initializes the system (deadlock version)
 - **Main_NODL**: Controller for the deadlock-free version
 - **DLDetection**: Specification that monitors for deadlock conditions by tracking fork ownership
@@ -23,26 +23,32 @@ This project implements the Dining Philosophers problem using the P programming 
 - `eStartEating`: Event for eating state transitions
 - `eFinishEating`: Event for finishing eating state transitions
 
+## Stately.ai visualization
+below is a table of visualizations of the machines in this project, generated using Stately.ai.
+| Machine | Visualization |
+| --- | --- |
+| Fork | ![Fork Visualization](https://raw.githubusercontent.com/p-org/P-DiningPhilosophers/main/fork.png) |
+| Philosopher | ![Philosopher Visualization](https://raw.githubusercontent.com/p-org/P-DiningPhilosophers/main/philo.png) |
+| Main (Deadlock Version) | ![Main Visualization](https://raw.githubusercontent.com/p-org/P-DiningPhilosophers/main/main_dl.png) |
+| Main (Deadlock-Free Version) | ![Main NODL Visualization](https://raw.githubusercontent.com/p-org/P-DiningPhilosophers/main/main_nodl.png) |
+
+
 ## The Process
 
 1. **Initialization**: Main creates 5 forks and 5 philosophers, each with references to their left and right forks
 2. **Philosopher Lifecycle**:
    - **Init**: Receives fork assignments and philosopher ID
-   - **Thinking**: Initial thinking state, then automatically attempts to eat
+   - **Thinking**: Initial thinking state, then automatically attempts to eat by invoking `TryLeftFork`
    - **TryLeftFork**: Requests left fork first, retries if busy
    - **TryRightFork**: After acquiring left fork, requests right fork, retries if busy
    - **Eating**: When both forks acquired, eats then releases both forks and returns to thinking
-3. **Fork Management**: Each fork alternates between Available and Taken states
-4. **Deadlock Monitoring**: DLDetection spec tracks philosophers holding forks and asserts when all philosophers simultaneously hold exactly one fork
+3. **Fork Management**: Each fork alternates between Available and Taken states. A fork can only be taken if it is available, otherwise it responds with `eForkBusy`. Also, only the philosopher who holds the fork can release it.
+4. **Deadlock Detection**: The `DLDetection` specification monitors the system for deadlock conditions by tracking which philosophers hold forks and asserting when all philosophers are waiting for forks, in other words, when all philosophers are holding exactly one fork and waiting for another.
 
 ## Problem Variants
 
-### Deadlock Situation (Current Implementation)
-The current implementation in `main_dl.p` demonstrates the **deadlock-prone version**. The bug occurs in the `TryRightFork` state of the Philosopher machine:
-
-```p
-on eForkBusy goto TryRightFork; // Retry picking up right fork
-```
+### Deadlock Situation (Buggy Implementation 🐞)
+The current implementation in `main_dl.p` demonstrates the **deadlock-prone version**. The bug occurs when all philosophers attempt to acquire their left forks simultaneously, leading to a circular wait condition.
 
 **Deadlock Scenario:**
 1. All 5 philosophers simultaneously acquire their left forks
@@ -56,8 +62,47 @@ The `DLDetection` specification detects this deadlock by:
 - Asserting that not all philosophers are simultaneously holding forks
 - When deadlock occurs: `assert sizeof(philoForks) < numPhilosophers, "Deadlock detected: All philosophers are holding the left fork and waiting for each other"`
 
+**P Checker Command:**
+```bash
+p check -tc DeadLockImpl -s 10
+```
+**Expected Output:**
+```
+.. Searching for a P compiled file locally in folder ./PGenerated/
+.. Found a P compiled file: ./PGenerated/CSharp/net8.0/DiningPhilosophers.dll
+.. Checking ./PGenerated/CSharp/net8.0/DiningPhilosophers.dll
+.. Test case :: DeadLockImpl
+... Checker is using 'random' strategy (seed:865362962).
+..... Schedule #1
+Checker found a bug.
+... Emitting traces:
+..... Writing PCheckerOutput/BugFinding/DiningPhilosophers_0_0.txt
+..... Writing PCheckerOutput/BugFinding/DiningPhilosophers_0_0.trace.json
+..... Writing PCheckerOutput/BugFinding/DiningPhilosophers_0_0.schedule
+... Elapsed 0.06 sec and used 0 GB.
+... Emitting coverage report:
+..... Writing PCheckerOutput/BugFinding/DiningPhilosophers.coverage.txt
+..... Writing PCheckerOutput/BugFinding/DiningPhilosophers.sci
+... Checking statistics:
+..... Found 1 bug.
+... Scheduling statistics:
+..... Explored 1 schedule
+..... Explored 1 timeline
+..... Found 100.00% buggy schedules.
+..... Number of scheduling points in terminating schedules: 37 (min), 37 (avg), 37 (max).
+..... Writing PCheckerOutput/BugFinding/DiningPhilosophers_pchecker_summary.txt
+... Elapsed 0.0920971 sec.
+. Done
+~~ [PTool]: Thanks for using P! ~~
+```
+
+**Peasy Visualization:**
+![Deadlock Visualization](https://raw.githubusercontent.com/p-org/P-DiningPhilosophers/main/peasy_deadlock.png)
+
+
+
 ### Deadlock-Free Situation (main_nodl.p)
-The deadlock-free solution in `main_nodl.p` implements a prevention strategy by having one philosopher (philosopher 3) use reverse fork ordering:
+The deadlock-free solution in `main_nodl.p` implements a prevention strategy by having one philosopher (doesn't matter which one) use reverse fork ordering:
 
 ```p
 if (i == numPhilosophers - 2) {
@@ -66,7 +111,44 @@ if (i == numPhilosophers - 2) {
 }
 ```
 
-This breaks the circular dependency by ensuring not all philosophers follow the same left-then-right acquisition pattern, preventing the deadlock condition.
+This breaks the circular dependency by ensuring not all philosophers follow the same left-then-right acquisition pattern, which prevents the deadlock condition.
+
+**Deadlock-Free P Checker Command:**
+```bash
+p check -tc NoDeadLockImpl -s 10
+```
+**Expected Output:**
+```
+.. Searching for a P compiled file locally in folder ./PGenerated/
+.. Found a P compiled file: ./PGenerated/CSharp/net8.0/DiningPhilosophers.dll
+.. Checking ./PGenerated/CSharp/net8.0/DiningPhilosophers.dll
+.. Test case :: NoDeadLockImpl
+... Checker is using 'random' strategy (seed:3690150366).
+..... Schedule #1
+..... Schedule #2
+..... Schedule #3
+..... Schedule #4
+..... Schedule #5
+..... Schedule #6
+..... Schedule #7
+..... Schedule #8
+..... Schedule #9
+..... Schedule #10
+... Emitting coverage report:
+..... Writing PCheckerOutput/BugFinding/DiningPhilosophers.coverage.txt
+..... Writing PCheckerOutput/BugFinding/DiningPhilosophers.sci
+... Checking statistics:
+..... Found 0 bugs.
+... Scheduling statistics:
+..... Explored 10 schedules
+..... Explored 1 timeline
+..... Number of scheduling points in terminating schedules: 100000 (min), 100000 (avg), 100000 (max).
+..... Exceeded the max-steps bound of '10000' in 100.00% of the fair schedules.
+..... Writing PCheckerOutput/BugFinding/DiningPhilosophers_pchecker_summary.txt
+... Elapsed 58.6927534 sec.
+. Done
+~~ [PTool]: Thanks for using P! ~~
+```
 
 ## Project Details
 
