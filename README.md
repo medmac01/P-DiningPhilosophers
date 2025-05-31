@@ -42,6 +42,20 @@ below is a table of visualizations of the machines in this project, generated us
 3. **Fork Management**: Each fork alternates between Available and Taken states. A fork can only be taken if it is available, otherwise it responds with `eForkBusy`. Also, only the philosopher who holds the fork can release it.
 4. **Deadlock Detection**: The `DLDetection` specification monitors the system for deadlock conditions by tracking which philosophers hold forks and asserting when all philosophers are waiting for forks, in other words, when all philosophers are holding exactly one fork and waiting for another.
 
+## Prerequisites
+
+1. **Install P Language**: Ensure P language runtime is installed on your system
+
+2. **Compile the Project**:
+   ```bash
+   # Navigate to project directory
+   cd P-DiningPhilosophers
+
+   # Compile the project
+   p compile
+   ```
+   This generates the necessary binaries in the `PGenerated` folder.
+
 ## Problem Variants
 
 ### Deadlock Situation (Buggy Implementation 🐞)
@@ -162,31 +176,7 @@ P-DiningPhilosophers/
 └── README.md           # This file
 ```
 
-### How to Run the P Checker
 
-1. **Install P Language**: Ensure P language runtime is installed on your system
-
-2. **Compile and Test**:
-   ```bash
-   # Navigate to project directory
-   cd P-DiningPhilosophers
-   
-   # Test deadlock version (should fail)
-   p test PSrc/main_dl.p::DeadLockImpl
-   
-   # Test deadlock-free version (should pass)
-   p test PSrc/main_dl.p::NoDeadLockImpl
-   ```
-
-3. **Expected Output**:
-   - **Deadlock Version (DeadLockImpl)**: Assertion failure with deadlock detection message
-   - **Deadlock-Free Version (NoDeadLockImpl)**: All tests pass, no deadlock detected
-
-4. **Verbose Output** (optional):
-   ```bash
-   p test PSrc/main_dl.p::DeadLockImpl -v
-   ```
-   This shows detailed state transitions and print statements for debugging.
 
 **Key Testing Points:**
 - Two test configurations are defined: `DeadLockImpl` and `NoDeadLockImpl`
