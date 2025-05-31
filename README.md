@@ -27,8 +27,8 @@ This project implements the Dining Philosophers problem using the P programming 
 below is a table of visualizations of the machines in this project, generated using Stately.ai.
 | Machine | Visualization |
 | --- | --- |
-| Fork | ![Fork Visualization](https://raw.githubusercontent.com/medmac01/P-DiningPhilosophers/main/Visualizations/fork.png) |
-| Philosopher | ![Philosopher Visualization](https://raw.githubusercontent.com/medmac01/P-DiningPhilosophers/main/Visualizations/philo.png) |
+| Fork | ![Fork Visualization](https://raw.githubusercontent.com/medmac01/P-DiningPhilosophers/main/Visualizations/Fork.png) |
+| Philosopher | ![Philosopher Visualization](https://raw.githubusercontent.com/medmac01/P-DiningPhilosophers/main/Visualizations/Philo.png) |
 
 ## The Process
 
