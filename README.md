@@ -28,7 +28,7 @@ below is a table of visualizations of the machines in this project, generated us
 | Machine | Visualization |
 | --- | --- |
 | Fork | ![Fork Visualization](https://raw.githubusercontent.com/medmac01/P-DiningPhilosophers/main/Visualizations/Fork.png) |
-| Philosopher | ![Philosopher Visualization](https://raw.githubusercontent.com/medmac01/P-DiningPhilosophers/main/Visualizations/Philo.png) |
+| Philosopher | ![Philosopher Visualization](https://raw.githubusercontent.com/medmac01/P-DiningPhilosophers/main/Visualizations/Philosopher.png) |
 
 ## The Process
 
