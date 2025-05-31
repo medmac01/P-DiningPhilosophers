@@ -7,42 +7,41 @@ The Dining Philosophers problem is a classic synchronization problem in computer
 This project implements the Dining Philosophers problem using the P programming language and demonstrates both a deadlock-prone version and a deadlock-free solution.
 
 ## Architecture
-Include a placeholder so that I can include a graph explaining the system.
 
 **System Components:**
 - **Philosophers (Philo)**: 5 state machines representing philosophers who think and eat
 - **Forks (Fork)**: 5 state machines representing shared resources (forks)
-- **Main**: Controller that initializes the system
-- **DeadlockDetection**: Specification that monitors for deadlock conditions
+- **Main**: Controller that initializes the system (deadlock version)
+- **Main_NODL**: Controller for the deadlock-free version
+- **DLDetection**: Specification that monitors for deadlock conditions by tracking fork ownership
 
 **Communication:**
 - `ePickup`: Philosopher requests a fork
 - `eForkTaken`: Fork confirms acquisition
 - `eForkBusy`: Fork denies request (already taken)
 - `ePutDown`: Philosopher releases a fork
+- `eStartEating`: Event for eating state transitions
+- `eFinishEating`: Event for finishing eating state transitions
 
 ## The Process
 
 1. **Initialization**: Main creates 5 forks and 5 philosophers, each with references to their left and right forks
 2. **Philosopher Lifecycle**:
-   - **Thinking**: Initial state, then automatically attempts to eat
-   - **TryLeftFork**: Requests left fork first
-   - **TryRightFork**: After acquiring left fork, requests right fork
-   - **Eating**: When both forks acquired, eats then releases both forks
-3. **Fork Management**: Each fork can be in Available or Taken state
-4. **Deadlock Monitoring**: DeadlockDetection spec tracks consecutive busy responses and operations without progress
+   - **Init**: Receives fork assignments and philosopher ID
+   - **Thinking**: Initial thinking state, then automatically attempts to eat
+   - **TryLeftFork**: Requests left fork first, retries if busy
+   - **TryRightFork**: After acquiring left fork, requests right fork, retries if busy
+   - **Eating**: When both forks acquired, eats then releases both forks and returns to thinking
+3. **Fork Management**: Each fork alternates between Available and Taken states
+4. **Deadlock Monitoring**: DLDetection spec tracks philosophers holding forks and asserts when all philosophers simultaneously hold exactly one fork
 
 ## Problem Variants
 
-### Deadlock Situation (BUG)
-The current implementation in this repository demonstrates the **incorrect solution** that suffers from deadlock. The bug occurs in the `TryRightFork` state of the Philosopher machine:
+### Deadlock Situation (Current Implementation)
+The current implementation in `main_dl.p` demonstrates the **deadlock-prone version**. The bug occurs in the `TryRightFork` state of the Philosopher machine:
 
 ```p
-on eForkBusy do {
-    // DEADLOCK VERSION: Don't release left fork, just wait/retry
-    print format("Philosopher {0} waiting for right fork (holding left)", id);
-    send rightFork, ePickup; // Keep trying without releasing left fork
-}
+on eForkBusy goto TryRightFork; // Retry picking up right fork
 ```
 
 **Deadlock Scenario:**
@@ -52,26 +51,22 @@ on eForkBusy do {
 4. System enters circular wait - each philosopher holds one resource and waits for another
 
 **P Checker Detection:**
-The `DeadlockDetection` specification detects this deadlock through:
-- Monitoring consecutive `eForkBusy` responses (threshold: 5)
-- Tracking operations without progress (threshold: 15 operations)
+The `DLDetection` specification detects this deadlock by:
+- Tracking philosophers holding forks in a set (`philoForks`)
+- Asserting that not all philosophers are simultaneously holding forks
+- When deadlock occurs: `assert sizeof(philoForks) < numPhilosophers, "Deadlock detected: All philosophers are holding the left fork and waiting for each other"`
 
-When deadlock occurs, the assertion fails with:
-```
-"Deadlock detected: X consecutive busy responses"
-```
-
-### No Bugs Situation
-The corrected solution would modify the `TryRightFork` state to implement deadlock prevention:
+### Deadlock-Free Situation (main_nodl.p)
+The deadlock-free solution in `main_nodl.p` implements a prevention strategy by having one philosopher (philosopher 3) use reverse fork ordering:
 
 ```p
-on eForkBusy do {
-    send leftFork, ePutDown; // Release left fork if right fork is busy
-    goto Thinking;
+if (i == numPhilosophers - 2) {
+    // One philosopher picks up in reverse order
+    philosophers += (0, new Philo((id=i, left=rightFork, right=leftFork)));
 }
 ```
 
-This prevents circular wait by ensuring philosophers release acquired resources when they cannot obtain all required resources, eliminating the deadlock condition. The same `DeadlockDetection` specification should pass without assertion failures in the corrected version.
+This breaks the circular dependency by ensuring not all philosophers follow the same left-then-right acquisition pattern, preventing the deadlock condition.
 
 ## Project Details
 
@@ -79,12 +74,13 @@ This prevents circular wait by ensuring philosophers release acquired resources 
 ```
 P-DiningPhilosophers/
 ├── PSrc/
-│   ├── main.p          # Main controller and event definitions
-│   ├── philo.p         # Philosopher state machine (deadlock version)
+│   ├── main_dl.p       # Main controller (deadlock version) and event definitions
+│   ├── main_nodl.p     # Main controller (deadlock-free version)
+│   ├── philo.p         # Philosopher state machine
 │   └── fork.p          # Fork state machine
 ├── PSpec/
 │   └── deadlock.p      # Deadlock detection specification
-└── ReadME.md           # This file
+└── README.md           # This file
 ```
 
 ### How to Run the P Checker
@@ -96,22 +92,25 @@ P-DiningPhilosophers/
    # Navigate to project directory
    cd P-DiningPhilosophers
    
-   # Run P checker with deadlock detection
-   p compile PSrc/main.p
-   p test PSrc/main.p
+   # Test deadlock version (should fail)
+   p test PSrc/main_dl.p::DeadLockImpl
+   
+   # Test deadlock-free version (should pass)
+   p test PSrc/main_dl.p::NoDeadLockImpl
    ```
 
 3. **Expected Output**:
-   - **Deadlock Version**: Assertion failure with deadlock detection message
-   - **Corrected Version**: All tests pass, no deadlock detected
+   - **Deadlock Version (DeadLockImpl)**: Assertion failure with deadlock detection message
+   - **Deadlock-Free Version (NoDeadLockImpl)**: All tests pass, no deadlock detected
 
 4. **Verbose Output** (optional):
    ```bash
-   p test PSrc/main.p -v
+   p test PSrc/main_dl.p::DeadLockImpl -v
    ```
    This shows detailed state transitions and print statements for debugging.
 
 **Key Testing Points:**
-- The test configuration in `main.p` uses `assert DeadlockDetection` to ensure the specification is checked
-- The deadlock detection spec monitors all fork-related events across all philosophers
+- Two test configurations are defined: `DeadLockImpl` and `NoDeadLockImpl`
+- The deadlock detection spec monitors `eForkTaken` and `ePutDown` events
 - Successful deadlock detection demonstrates P's capability for formal verification of concurrent systems
+- The specification uses set-based tracking rather than counters for more precise deadlock detection
