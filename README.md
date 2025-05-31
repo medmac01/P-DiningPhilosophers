@@ -27,11 +27,8 @@ This project implements the Dining Philosophers problem using the P programming 
 below is a table of visualizations of the machines in this project, generated using Stately.ai.
 | Machine | Visualization |
 | --- | --- |
-| Fork | ![Fork Visualization](https://raw.githubusercontent.com/p-org/P-DiningPhilosophers/main/fork.png) |
-| Philosopher | ![Philosopher Visualization](https://raw.githubusercontent.com/p-org/P-DiningPhilosophers/main/philo.png) |
-| Main (Deadlock Version) | ![Main Visualization](https://raw.githubusercontent.com/p-org/P-DiningPhilosophers/main/main_dl.png) |
-| Main (Deadlock-Free Version) | ![Main NODL Visualization](https://raw.githubusercontent.com/p-org/P-DiningPhilosophers/main/main_nodl.png) |
-
+| Fork | ![Fork Visualization](https://raw.githubusercontent.com/medmac01/P-DiningPhilosophers/main/Visualizations/fork.png) |
+| Philosopher | ![Philosopher Visualization](https://raw.githubusercontent.com/medmac01/P-DiningPhilosophers/main/Visualizations/philo.png) |
 
 ## The Process
 
@@ -97,7 +94,7 @@ Checker found a bug.
 ```
 
 **Peasy Visualization:**
-![Deadlock Visualization](https://raw.githubusercontent.com/p-org/P-DiningPhilosophers/main/peasy_deadlock.png)
+![Deadlock Visualization](https://raw.githubusercontent.com/medmac01/P-DiningPhilosophers/main/Visualizations/buggy.png)
 
 
 
